@@ -1,0 +1,73 @@
+name: CI-CD Tickets Backend
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1) Checkout repo
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2) Set up Java 17
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # 3) Build JAR with Maven
+      - name: Build with Maven
+        run: mvn clean package -DskipTests
+
+      # 4) Log in Docker Hub
+      - name: Docker Hub Login
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 5) Build Docker image
+      - name: Build Docker Image
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/tickets-backend:latest .
+
+      # 6) Push Docker image
+      - name: Push Docker Image
+        run: |
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/tickets-backend:latest
+
+      # 7) Deploy to EC2 via SSH
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            echo "== Pull latest image =="
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/tickets-backend:latest
+
+            echo "== Stop old container if exists =="
+            docker stop tickets-backend || true
+            docker rm tickets-backend || true
+
+            echo "== Run new container =="
+            docker run -d \
+              --name tickets-backend \
+              -p 8080:8080 \
+              -e AWS_REGION=${{ secrets.AWS_REGION }} \
+              -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
+              -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+              -e AWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }} \
+              -e AZURE_TENANT_ID=${{ secrets.AZURE_TENANT_ID }} \
+              -e AZURE_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }} \
+              -v /mnt/efs:/mnt/efs \
+              ${{ secrets.DOCKERHUB_USERNAME }}/tickets-backend:latest
+
+            echo "== Clean unused images (optional) =="
+            docker image prune -f

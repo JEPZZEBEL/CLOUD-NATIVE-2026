@@ -1,0 +1,34 @@
+server:
+  port: 8080
+
+efs:
+  base-path: /mnt/efs/tickets   # en EC2 esta ruta debe estar montada al EFS
+
+aws:
+  region: us-east-1
+  s3:
+    bucket: tickets-eventos-tu-grupo
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:ticketsdb;DB_CLOSE_DELAY=-1
+    driverClassName: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://login.microsoftonline.com/${AZURE_TENANT_ID}/v2.0
+          audiences: api://${AZURE_CLIENT_ID}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
