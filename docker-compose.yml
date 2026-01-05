@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  tickets:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tickets-backend
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      AWS_REGION: us-east-1
+      AWS_S3_BUCKET: tickets-eventos-tu-grupo
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASS: guest
+    volumes:
+      - ./efs-sim:/mnt/efs/tickets
+    depends_on:
+      - rabbitmq

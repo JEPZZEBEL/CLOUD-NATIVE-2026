@@ -1,0 +1,24 @@
+# ===== Secrets / env =====
+.env
+*.env
+.env.*
+
+# ===== Maven / Java =====
+/target/
+**/target/
+*.class
+
+# ===== IDEs =====
+.vscode/
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+
+# ===== Git should never be inside zip =====
+.git/

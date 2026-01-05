@@ -1,0 +1,16 @@
+{
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Spring Boot-TicketsBackendApplication<TicketsBackend>",
+      "request": "launch",
+      "mainClass": "cl.duoc.tickets.TicketsBackendApplication",
+      "projectName": "tickets-backend",
+      "args": "",
+      "envFile": "${workspaceFolder}/.env"
+    }
+  ]
+}
+
+
+

@@ -31,16 +31,12 @@ public class TicketController {
     @PostMapping("/generar")
     public TicketResponse generar(@Valid @RequestBody GenerarTicketRequest req) throws Exception {
         Ticket t = ticketService.generarTicket(req);
-        return TicketResponse.builder()
-                .ticketId(t.getId())
-                .efsPath(t.getEfsPath())
-                .estado(t.getEstado())
-                .build();
+        return toResponse(t);
     }
 
     // 2) Subir ticket a S3
     @PostMapping("/{ticketId}/subir-s3")
-    public S3UploadResponse subirS3(@PathVariable String ticketId) throws Exception {
+    public S3UploadResponse subirS3(@PathVariable("ticketId") String ticketId) throws Exception {
         Ticket t = ticketService.subirTicketAS3(ticketId);
         return S3UploadResponse.builder()
                 .ticketId(t.getId())
@@ -49,47 +45,63 @@ public class TicketController {
                 .build();
     }
 
-    // 3) Descargar por evento (lista de keys S3 o paths EFS)
+    // 3) Listar tickets por evento
     @GetMapping("/evento/{eventoId}")
-    public List<Ticket> listarPorEvento(@PathVariable Long eventoId) {
-        return ticketService.listarPorEvento(eventoId);
+    public List<TicketResponse> listarPorEvento(@PathVariable("eventoId") Long eventoId) {
+        return ticketService.listarPorEvento(eventoId)
+                .stream()
+                .map(this::toResponse)
+                .toList();
     }
 
-    // 4) Descargar por usuario
+    // 4) Listar tickets por usuario
     @GetMapping("/usuario/{usuario}")
-    public List<Ticket> listarPorUsuario(@PathVariable String usuario) {
-        return ticketService.listarPorUsuario(usuario);
+    public List<TicketResponse> listarPorUsuario(@PathVariable("usuario") String usuario) {
+        return ticketService.listarPorUsuario(usuario)
+                .stream()
+                .map(this::toResponse)
+                .toList();
     }
 
-    // Extra: descargar PDF directo desde S3 por ticketId (te sirve para demo)
+    // 4.1) Descargar PDF (S3 si existe, si no EFS) - para demo
     @GetMapping("/{ticketId}/pdf")
-    public ResponseEntity<byte[]> descargarPdf(@PathVariable String ticketId) throws Exception {
-        Ticket t = ticketService.listarPorUsuario("dummy")
-                .stream().filter(x -> x.getId().equals(ticketId)).findFirst()
-                .orElseThrow(() -> new RuntimeException("Ticket no encontrado"));
+    public ResponseEntity<byte[]> descargarPdf(@PathVariable("ticketId") String ticketId) throws Exception {
+        byte[] pdf = ticketService.descargarPdf(ticketId);
 
-        if (t.getS3Key() == null) {
-            throw new RuntimeException("Ticket aún no está en S3");
-        }
-
-        byte[] pdf = s3Service.download(t.getS3Key());
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=ticket-" + ticketId + ".pdf")
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=ticket-" + ticketId + ".pdf")
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdf);
     }
 
     // 5) Modificar detalles del ticket
     @PutMapping("/{ticketId}")
-    public Ticket actualizar(@PathVariable String ticketId,
-                             @RequestBody UpdateTicketRequest req) {
-        return ticketService.actualizarTicket(ticketId, req);
+    public TicketResponse actualizar(@PathVariable("ticketId") String ticketId,
+                                     @RequestBody UpdateTicketRequest req) {
+        Ticket t = ticketService.actualizarTicket(ticketId, req);
+        return toResponse(t);
     }
 
     // 6) Eliminar ticket específico (EFS + S3 + BD)
     @DeleteMapping("/{ticketId}")
-    public ResponseEntity<Void> eliminar(@PathVariable String ticketId) throws Exception {
+    public ResponseEntity<Void> eliminar(@PathVariable("ticketId") String ticketId) throws Exception {
         ticketService.eliminarTicket(ticketId);
         return ResponseEntity.noContent().build();
+    }
+
+    // ✅ IMPORTANTE:
+    // Las estadísticas quedan SOLO en StatsController:
+    // GET /api/tickets/estadisticas/evento/{eventoId}
+
+    private TicketResponse toResponse(Ticket t) {
+        return TicketResponse.builder()
+                .ticketId(t.getId())
+                .eventoId(t.getEventoId())
+                .usuario(t.getUsuario())
+                .estado(t.getEstado())
+                .efsPath(t.getEfsPath())
+                .s3Key(t.getS3Key())
+                .build();
     }
 }

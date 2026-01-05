@@ -2,12 +2,14 @@ server:
   port: 8080
 
 efs:
-  base-path: /mnt/efs/tickets   # en EC2 esta ruta debe estar montada al EFS
+  base-path: /mnt/efs/tickets
 
 aws:
-  region: us-east-1
+  region: ${AWS_REGION:us-east-1}
   s3:
-    bucket: tickets-eventos-tu-grupo
+    bucket: ${AWS_S3_BUCKET:tickets-eventos-tu-grupo}
+    endpoint: ${AWS_S3_ENDPOINT:}
+    path-style: true
 
 spring:
   datasource:
@@ -15,6 +17,7 @@ spring:
     driverClassName: org.h2.Driver
     username: sa
     password:
+
   jpa:
     hibernate:
       ddl-auto: update
@@ -24,8 +27,18 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: https://login.microsoftonline.com/${AZURE_TENANT_ID}/v2.0
-          audiences: api://${AZURE_CLIENT_ID}
+          issuer-uri: ${AZURE_ISSUER_URI:https://login.microsoftonline.com/CLOUD2026DUBY.onmicrosoft.com/v2.0}
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASS:guest}
+
+app:
+  queues:
+    ok: tickets.ok
+    error: tickets.error
 
 management:
   endpoints:

@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface ReservaRepository extends JpaRepository<Reserva, Long> {
+
+    // Para estadísticas por evento
     List<Reserva> findByEventoId(Long eventoId);
-    List<Reserva> findByUsuario(String usuario);
+
 }
