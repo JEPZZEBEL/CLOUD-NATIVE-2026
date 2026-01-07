@@ -27,7 +27,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${AZURE_ISSUER_URI:https://login.microsoftonline.com/CLOUD2026DUBY.onmicrosoft.com/v2.0}
+          issuer-uri: https://sts.windows.net/3e23a328-3849-428a-91b6-2e47dcc18093/
 
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}

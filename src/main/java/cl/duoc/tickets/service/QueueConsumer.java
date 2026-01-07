@@ -1,20 +1,22 @@
 package cl.duoc.tickets.service;
 
-import cl.duoc.tickets.dto.queue.TicketMessage;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
 public class QueueConsumer {
 
-    private final OracleTicketLogService oracleTicketLogService;
+    private final RabbitTemplate rabbitTemplate;
 
-    public QueueConsumer(OracleTicketLogService oracleTicketLogService) {
-        this.oracleTicketLogService = oracleTicketLogService;
+    @Value("${app.queues.ok}")
+    private String okQueue;
+
+    public QueueConsumer(RabbitTemplate rabbitTemplate) {
+        this.rabbitTemplate = rabbitTemplate;
     }
 
-    @RabbitListener(queues = "${app.queues.ok}")
-    public void consumeOkQueue(TicketMessage message) {
-        oracleTicketLogService.saveFromQueue(message);
+    public Object consumeOneFromOk() {
+        return rabbitTemplate.receiveAndConvert(okQueue);
     }
 }

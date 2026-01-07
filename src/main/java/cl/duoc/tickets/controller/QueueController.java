@@ -1,54 +1,36 @@
 package cl.duoc.tickets.controller;
 
-import cl.duoc.tickets.dto.queue.TicketMessage;
-import cl.duoc.tickets.service.QueueProducer;
+import cl.duoc.tickets.entity.TicketQueueLog;
+import cl.duoc.tickets.service.TicketQueueConsumer;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.time.Instant;
 
 @RestController
 @RequestMapping("/api/queue")
 public class QueueController {
 
-    private final QueueProducer producer;
+    private final TicketQueueConsumer consumer;
 
-    public QueueController(QueueProducer producer) {
-        this.producer = producer;
+    public QueueController(TicketQueueConsumer consumer) {
+        this.consumer = consumer;
     }
 
-    // Endpoint simple para probar cola (no depende de tu lógica actual de tickets)
-    @PostMapping("/produce")
-    public ResponseEntity<String> produce(@RequestBody ProduceRequest req) {
-        TicketMessage msg = new TicketMessage(
-                req.getTicketId(),
-                req.getEventoId(),
-                req.getUsuario(),
-                req.getCantidad(),
-                Instant.now()
-        );
+    /**
+     * Consume 1 mensaje desde tickets.ok:
+     * - Si lo guarda OK -> devuelve el registro
+     * - Si no hay mensaje -> 204
+     * - Si falla y se manda a tickets.error -> 202
+     */
+    @PostMapping("/consume-ok")
+    public ResponseEntity<?> consumeOne() {
+        TicketQueueLog saved = consumer.consumeOneFromOkAndSave();
 
-        producer.sendOkOrFallback(msg);
-        return ResponseEntity.accepted().body("Mensaje enviado a cola OK (fallback a ERROR si falla).");
-    }
+        if (saved == null) {
+            // Puede ser cola vacía o que se reenvió a error.
+            // Para diferenciar, lo dejamos como Accepted (demo simple)
+            return ResponseEntity.accepted().body("Procesado: cola vacía o mensaje enviado a ERROR");
+        }
 
-    // DTO interno para request
-    public static class ProduceRequest {
-        private String ticketId;
-        private Long eventoId;
-        private String usuario;
-        private Integer cantidad;
-
-        public String getTicketId() { return ticketId; }
-        public void setTicketId(String ticketId) { this.ticketId = ticketId; }
-
-        public Long getEventoId() { return eventoId; }
-        public void setEventoId(Long eventoId) { this.eventoId = eventoId; }
-
-        public String getUsuario() { return usuario; }
-        public void setUsuario(String usuario) { this.usuario = usuario; }
-
-        public Integer getCantidad() { return cantidad; }
-        public void setCantidad(Integer cantidad) { this.cantidad = cantidad; }
+        return ResponseEntity.ok(saved);
     }
 }

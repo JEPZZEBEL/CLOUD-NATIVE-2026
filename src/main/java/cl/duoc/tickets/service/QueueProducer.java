@@ -9,24 +9,25 @@ import org.springframework.stereotype.Service;
 public class QueueProducer {
 
     private final RabbitTemplate rabbitTemplate;
-    private final String okQueue;
-    private final String errorQueue;
 
-    public QueueProducer(
-            RabbitTemplate rabbitTemplate,
-            @Value("${app.queues.ok}") String okQueue,
-            @Value("${app.queues.error}") String errorQueue
-    ) {
+    @Value("${app.exchange:tickets.ex}")
+    private String exchange;
+
+    @Value("${app.routing.ok:ok}")
+    private String okRoutingKey;
+
+    @Value("${app.routing.error:error}")
+    private String errorRoutingKey;
+
+    public QueueProducer(RabbitTemplate rabbitTemplate) {
         this.rabbitTemplate = rabbitTemplate;
-        this.okQueue = okQueue;
-        this.errorQueue = errorQueue;
     }
 
-    public void sendOkOrFallback(TicketMessage message) {
-        try {
-            rabbitTemplate.convertAndSend(okQueue, message);
-        } catch (Exception ex) {
-            rabbitTemplate.convertAndSend(errorQueue, message);
-        }
+    public void sendOk(TicketMessage msg) {
+        rabbitTemplate.convertAndSend(exchange, okRoutingKey, msg);
+    }
+
+    public void sendError(TicketMessage msg) {
+        rabbitTemplate.convertAndSend(exchange, errorRoutingKey, msg);
     }
 }
