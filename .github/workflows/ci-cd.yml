@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 name: CI/CD Tickets Backend
  
+=======
+name: Build and Push Docker Image
+  
+>>>>>>> 56927111ebe08f2f18fcc90f32ee509dcca3f91c
 on:
   push:
     branches:
@@ -62,4 +67,7 @@ jobs:
             # Iniciar el contenedor
             docker run -d --name my-app -p 8080:8080 ${{ secrets.DOCKERHUB_USERNAME }}/my-app:latest
           EOF
+<<<<<<< HEAD
 
+=======
+>>>>>>> 56927111ebe08f2f18fcc90f32ee509dcca3f91c
